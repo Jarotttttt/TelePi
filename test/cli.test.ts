@@ -153,6 +153,49 @@ describe("telepi CLI", () => {
     mockState.resolveTelePiInstallContext.mockReturnValue({ version: "1.2.3", platform: "darwin" });
   });
 
+  it("displays service detail cleanly on Windows", () => {
+    mockState.resolveTelePiInstallContext.mockReturnValue({ version: "1.2.3", platform: "win32" });
+    mockState.getTelePiStatus.mockReturnValue({
+      version: "1.2.3",
+      resolvedConfigPath: "C:\\Users\\user\\.config\\telepi\\config.env",
+      configExists: true,
+      configSource: "installed-default",
+      service: {
+        unitExists: false,
+        plistExists: false,
+        loaded: false,
+        state: "unmanaged",
+        pid: undefined,
+        detail: "Windows does not use background system services. Run 'telepi start' directly.",
+        error: undefined,
+      },
+      launchAgent: {
+        unitExists: false,
+        plistExists: false,
+        loaded: false,
+        state: "unmanaged",
+        pid: undefined,
+        detail: "Windows does not use background system services. Run 'telepi start' directly.",
+        error: undefined,
+      },
+      extension: {
+        mode: "copy" as const,
+        detail: "copied",
+        targetPath: undefined,
+      },
+    });
+
+    runStatusCommand();
+
+    const output = logSpy.mock.calls.map((c) => String(c[0])).join("\n");
+    expect(output).toContain("Service: Windows does not use background system services. Run 'telepi start' directly.");
+    expect(output).not.toContain("launchd:");
+    expect(output).not.toContain("systemd:");
+
+    // Restore mocks
+    mockState.resolveTelePiInstallContext.mockReturnValue({ version: "1.2.3", platform: "darwin" });
+  });
+
   it("validates unexpected arguments and unknown commands", async () => {
     expect(() => ensureNoArguments("status", ["extra"])).toThrow("Unexpected arguments for status: extra");
     await expect(runSetupCommand(["token"]))

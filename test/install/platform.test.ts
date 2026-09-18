@@ -40,12 +40,22 @@ describe("getPlatformInstallHint", () => {
   });
 
   it("returns generic hint on unsupported platforms", () => {
-    Object.defineProperty(process, "platform", { value: "win32", configurable: true });
+    Object.defineProperty(process, "platform", { value: "freebsd", configurable: true });
 
     const hint = getPlatformInstallHint("git");
 
     expect(hint).toContain("git");
     expect(hint).toContain("package manager");
+    expect(hint).not.toContain("brew");
+    expect(hint).not.toContain("sudo");
+  });
+
+  it("returns Windows package manager on Windows", () => {
+    Object.defineProperty(process, "platform", { value: "win32", configurable: true });
+
+    const hint = getPlatformInstallHint("git");
+
+    expect(hint).toContain("git");
     expect(hint).not.toContain("brew");
     expect(hint).not.toContain("sudo");
   });

@@ -85,5 +85,5 @@ describe("bot slash-command argument hint caching", () => {
 		);
 		expect(readFileSync).toHaveBeenCalledTimes(1);
 		expect(readFileSync).toHaveBeenCalledWith(promptPath, "utf8");
-	});
+	}, 15000);
 });

@@ -156,6 +156,11 @@ describe("handoff extension helpers", () => {
     expect(hasInstalledSystemdFlow()).toBe(true);
   });
 
+  it("defaults to direct mode on Windows", () => {
+    Object.defineProperty(process, "platform", { value: "win32", configurable: true });
+    expect(resolveHandoffMode()).toBe("direct");
+  });
+
   it("handoff extension source references systemd mode", () => {
     const source = readFileSync(new URL("../extensions/telepi-handoff.ts", import.meta.url), "utf8");
 

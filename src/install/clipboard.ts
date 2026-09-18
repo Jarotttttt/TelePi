@@ -22,6 +22,10 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     return false;
   }
 
+  if (process.platform === "win32") {
+    return copyViaCommand("clip", [], text);
+  }
+
   return false;
 }
 

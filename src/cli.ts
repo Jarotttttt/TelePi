@@ -107,8 +107,8 @@ export function runStatusCommand(): void {
   const platform = resolveTelePiInstallContext(import.meta.url).platform;
 
   const configSourceLabels: Record<string, string> = {
-    "service-env": platform === "linux" ? "systemd TELEPI_CONFIG" : "launchd TELEPI_CONFIG",
-    "service-cwd": platform === "linux" ? "systemd working-directory .env" : "launchd working-directory .env",
+    "service-env": platform === "linux" ? "systemd TELEPI_CONFIG" : platform === "darwin" ? "launchd TELEPI_CONFIG" : "TELEPI_CONFIG",
+    "service-cwd": platform === "linux" ? "systemd working-directory .env" : platform === "darwin" ? "launchd working-directory .env" : "working-directory .env",
     "launchd-env": "launchd TELEPI_CONFIG",
     "launchd-cwd": "launchd working-directory .env",
     "installed-default": "installed default",
@@ -123,17 +123,22 @@ export function runStatusCommand(): void {
       ? `${status.extension.detail} -> ${status.extension.targetPath}`
       : status.extension.detail;
 
-  const serviceLabel = platform === "linux" ? "systemd" : "launchd";
-  const unitLabel = platform === "linux" ? "unit" : "plist";
-  const unitPresent = status.service.unitExists ? `${unitLabel} present` : `${unitLabel} missing`;
-
   console.log(`TelePi ${status.version}`);
   console.log(`Config path: ${status.resolvedConfigPath} [${configSourceLabels[status.configSource] ?? status.configSource}]`);
   console.log(`Config exists: ${status.configExists ? "yes" : "no"}`);
-  console.log(`${serviceLabel}: ${serviceSummary} (${unitPresent})`);
-  if (status.service.error) {
-    console.log(`${serviceLabel} detail: ${status.service.error}`);
+
+  if (platform === "win32") {
+    console.log(`Service: ${status.service.detail}`);
+  } else {
+    const serviceLabel = platform === "linux" ? "systemd" : "launchd";
+    const unitLabel = platform === "linux" ? "unit" : "plist";
+    const unitPresent = status.service.unitExists ? `${unitLabel} present` : `${unitLabel} missing`;
+    console.log(`${serviceLabel}: ${serviceSummary} (${unitPresent})`);
+    if (status.service.error) {
+      console.log(`${serviceLabel} detail: ${status.service.error}`);
+    }
   }
+
   console.log(`Extension: ${extensionSummary}`);
 }
 

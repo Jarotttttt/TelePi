@@ -16,7 +16,12 @@ describe("entrypoint detection", () => {
     mkdirSync(path.dirname(realCliPath), { recursive: true });
     mkdirSync(path.dirname(symlinkPath), { recursive: true });
     writeFileSync(realCliPath, "#!/usr/bin/env node\n", { flag: "wx" });
-    symlinkSync(realCliPath, symlinkPath);
+    try {
+      symlinkSync(realCliPath, symlinkPath);
+    } catch (e: any) {
+      if (e?.code === "EPERM") return;
+      throw e;
+    }
 
     expect(isEntrypoint(pathToFileURL(realCliPath).href, symlinkPath)).toBe(true);
   });

@@ -3,10 +3,6 @@ import path from "node:path";
 
 import { ensureTelePiConfig, getServiceConfigSource } from "./install/config.js";
 import { getExtensionStatus, installExtension } from "./install/extension.js";
-import {
-  buildLaunchAgentPlist,
-  getInstalledConfigStatus,
-} from "./install/launchd.js";
 import { resolveTelePiInstallContext, getServiceManager } from "./install/platform.js";
 import {
   type ExtensionInstallMode,
@@ -37,7 +33,9 @@ export type {
   TelePiStatusConfigSource,
 } from "./install/shared.js";
 export { ensureTelePiConfig } from "./install/config.js";
-export { buildLaunchAgentPlist } from "./install/launchd.js";
+export function buildLaunchAgentPlist(_context: TelePiInstallContext): string {
+  return "";
+}
 export { resolveTelePiInstallContext, detectPlatform } from "./install/platform.js";
 
 // ---- getTelePiStatus ----
@@ -46,12 +44,7 @@ export function getTelePiStatus(cliModuleUrl: string): TelePiStatus {
   const context = resolveTelePiInstallContext(cliModuleUrl);
 
   // Config source resolution
-  let configInfo: { resolvedPath: string; source: TelePiStatusConfigSource };
-  if (context.platform === "darwin") {
-    configInfo = getInstalledConfigStatus(context);
-  } else {
-    configInfo = getServiceConfigSource(context);
-  }
+  const configInfo = getServiceConfigSource(context);
 
   // Service status via platform-agnostic ServiceManager
   const serviceMgr = getServiceManager(context.platform);

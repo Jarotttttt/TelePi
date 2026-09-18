@@ -140,11 +140,10 @@ export function resolveDirectLaunchTarget(options: {
 
 async function hasGlobalTelePiCommand(pi: ExtensionAPI): Promise<boolean> {
 	try {
-		const result = await pi.exec(
-			"bash",
-			["-lc", "command -v telepi >/dev/null 2>&1"],
-			{ timeout: 3000 },
-		);
+		const isWin = process.platform === "win32";
+		const cmd = isWin ? "where" : "bash";
+		const args = isWin ? ["telepi"] : ["-lc", "command -v telepi >/dev/null 2>&1"];
+		const result = await pi.exec(cmd, args, { timeout: 3000 });
 		return result.code === 0;
 	} catch {
 		return false;
@@ -367,6 +366,25 @@ async function handoffViaDirect(
 	}
 
 	ctx.ui.notify(`Handing off to TelePi...\nSession: ${sessionFile}`, "info");
+
+	if (process.platform === "win32") {
+		const isInstalled = target.kind === "installed";
+		const workDir = isInstalled ? target.homeDirectory : target.telePiDir;
+		const cmd = isInstalled
+			? `cmd.exe /c "set "PI_SESSION_PATH=${sessionFile}" & set "TELEPI_CONFIG=${target.installedConfigPath}" & cd /d "${workDir}" & start /b telepi start"`
+			: `cmd.exe /c "cd /d "${workDir}" & set "PI_SESSION_PATH=${sessionFile}" & start /b npx tsx src/index.ts"`;
+
+		try {
+			const result = await pi.exec("cmd.exe", ["/c", cmd], { timeout: 5000 });
+			if (result.code === 0) {
+				ctx.ui.notify("TelePi started on Windows in background. Check Telegram!", "info");
+				return true;
+			}
+		} catch {
+			ctx.ui.notify("Could not auto-launch TelePi on Windows. Start it manually.", "warning");
+			return false;
+		}
+	}
 
 	if (target.kind === "source") {
 		await pi

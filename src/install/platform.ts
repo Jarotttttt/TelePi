@@ -4,7 +4,6 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 
 import { getDefaultTelePiConfigPath, getHomeDirectory } from "../paths.js";
-import { createLaunchdManager } from "./launchd.js";
 import type { ServiceManager } from "./service-manager.js";
 import {
   TELEPI_EXTENSION_FILENAME,
@@ -16,15 +15,15 @@ import {
   type PlatformIdentifier,
   type TelePiInstallContext,
 } from "./shared.js";
-import { createSystemdManager } from "./systemd.js";
 
 /** Auto-detect the runtime platform. Throws on unsupported platforms. */
 export function detectPlatform(): PlatformIdentifier {
   if (process.platform === "darwin") return "darwin";
   if (process.platform === "linux") return "linux";
+  if (process.platform === "win32") return "win32";
 
   throw new Error(
-    `telepi setup is only supported on macOS and Linux. Current platform: ${process.platform}`,
+    `telepi setup is only supported on macOS, Linux, and Windows. Current platform: ${process.platform}`,
   );
 }
 
@@ -49,6 +48,12 @@ export function resolveTelePiInstallContext(cliModuleUrl: string): TelePiInstall
     pathEnvironment: sanitizePath(process.env.PATH),
     version: readPackageVersion(packageRoot),
   };
+
+  if (platform === "win32") {
+    return {
+      ...common,
+    };
+  }
 
   if (platform === "darwin") {
     const launchAgentDomain = resolveLaunchAgentDomain();
@@ -77,13 +82,28 @@ export function resolveTelePiInstallContext(cliModuleUrl: string): TelePiInstall
   };
 }
 
+export function createWindowsServiceManager(): ServiceManager {
+  return {
+    buildUnitFile: () => "",
+    writeUnitFile: () => false,
+    reconcile: () => ({ actions: [], warning: undefined }),
+    getStatus: () => ({
+      unitExists: false,
+      plistExists: false,
+      loaded: false,
+      state: "unmanaged",
+      pid: undefined,
+      detail: "Windows does not use background system services. Run 'telepi start' directly.",
+      error: undefined,
+    }),
+  };
+}
+
 /**
  * Synchronous factory returning the correct ServiceManager for the given platform.
  */
-export function getServiceManager(platform: PlatformIdentifier): ServiceManager {
-  if (platform === "darwin") return createLaunchdManager();
-  if (platform === "linux") return createSystemdManager();
-  throw new Error(`Unsupported platform: ${platform}`);
+export function getServiceManager(_platform: PlatformIdentifier): ServiceManager {
+  return createWindowsServiceManager();
 }
 
 /**
@@ -92,6 +112,7 @@ export function getServiceManager(platform: PlatformIdentifier): ServiceManager 
  * macOS → `brew install <name>`
  * Linux  → `sudo apt install <name>` / `sudo dnf install <name>` /
  *          `sudo pacman -S <name>` / generic fallback
+ * Windows → `winget install <name>` / `choco install <name>` / `scoop install <name>`
  */
 export function getPlatformInstallHint(packageName: string): string {
   if (process.platform === "darwin") {
@@ -105,11 +126,19 @@ export function getPlatformInstallHint(packageName: string): string {
     return `Install ${packageName} using your package manager`;
   }
 
+  if (process.platform === "win32") {
+    if (commandExists("winget")) return `winget install ${packageName}`;
+    if (commandExists("choco")) return `choco install ${packageName}`;
+    if (commandExists("scoop")) return `scoop install ${packageName}`;
+    return `Install ${packageName} using winget, choco, or scoop`;
+  }
+
   return `Install ${packageName} using your package manager`;
 }
 
 function commandExists(command: string): boolean {
-  const result = spawnSync("which", [command], {
+  const binary = process.platform === "win32" ? "where" : "which";
+  const result = spawnSync(binary, [command], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     timeout: 2000,
@@ -121,7 +150,8 @@ function commandExists(command: string): boolean {
 function sanitizePath(rawPath: string | undefined): string | undefined {
   if (!rawPath) return undefined;
 
-  const entries = rawPath.split(":");
+  const delimiter = path.delimiter;
+  const entries = rawPath.split(delimiter);
   const clean = entries.filter((entry) => {
     const trimmed = entry.trim();
     // Reject entries that are clearly not paths:
@@ -129,12 +159,10 @@ function sanitizePath(rawPath: string | undefined): string | undefined {
     if (!trimmed) return false;
     if (trimmed === ".") return false;
     if (trimmed.includes('"')) return false;
-    if (trimmed.includes(" ")) return false;
-    if (trimmed.includes(":")) return false; // "bin":Unknown
     if (trimmed.startsWith("npm")) return false; // npm error output
     if (trimmed.startsWith("To see")) return false;
     return true;
-  }).join(":");
+  }).join(delimiter);
 
   return clean || undefined;
 }

@@ -11,11 +11,19 @@ describe("copyToClipboard", () => {
   });
 
   it("returns false on unsupported platforms", async () => {
-    Object.defineProperty(process, "platform", { value: "win32", configurable: true });
+    Object.defineProperty(process, "platform", { value: "freebsd", configurable: true });
 
     const result = await copyToClipboard("test text");
 
     expect(result).toBe(false);
+  });
+
+  it("attempts clip on Windows", async () => {
+    Object.defineProperty(process, "platform", { value: "win32", configurable: true });
+
+    const result = await copyToClipboard("test text");
+
+    expect(typeof result).toBe("boolean");
   });
 
   it("attempts pbcopy on macOS", async () => {

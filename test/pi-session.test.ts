@@ -594,7 +594,7 @@ describe("PiSessionService", () => {
 		expect(mockState.AuthStorage.create).not.toHaveBeenCalled();
 		expect(mockState.ModelRuntime.create).toHaveBeenCalledWith({
 			credentials: expect.anything(),
-			modelsPath: "/mock-agent/models.json",
+			modelsPath: path.join("/mock-agent", "models.json"),
 		});
 		expect(mockState.ModelRegistry).toHaveBeenCalledTimes(1);
 		expect(mockState.ModelRegistry).toHaveBeenCalledWith(

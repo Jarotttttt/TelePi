@@ -9,7 +9,7 @@ export const TELEPI_SETUP_PLACEHOLDER_WORKSPACE = "/absolute/path/to/your/main/p
 export const TELEPI_SYSTEMD_LOG_DIR_RELATIVE = ".local/state/telepi/logs";
 export const TELEPI_SYSTEMD_USER_DIR_RELATIVE = ".config/systemd/user";
 
-export type PlatformIdentifier = "darwin" | "linux";
+export type PlatformIdentifier = "darwin" | "linux" | "win32";
 
 export type LaunchctlResult = {
   status: number | null;

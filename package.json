@@ -33,8 +33,6 @@
   "files": [
     "dist",
     "extensions/telepi-handoff.ts",
-    "launchd/com.telepi.plist",
-    "systemd/telepi.service",
     "README.md",
     ".env.example",
     "LICENSE"
@@ -60,7 +58,6 @@
     "undici": "8.9.0"
   },
   "optionalDependencies": {
-    "parakeet-coreml": "^2.2.0",
     "sherpa-onnx-node": "1.12.32"
   },
   "devDependencies": {
